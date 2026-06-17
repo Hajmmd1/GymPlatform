@@ -1,0 +1,106 @@
+# Build results
+bin/
+obj/
+Build/
+Debug/
+Release/
+dist/
+
+# NuGet
+packages/
+*.nuget.packages/
+*.nupkg
+*.snupkg
+
+# .NET
+*.dll
+*.exe
+*.pdb
+*.apphost
+*.runtimeconfig.json
+*.runtimeconfig.dev.json
+project.assets.json
+*.cache
+*.msi
+*.publish/
+*.svclog
+*.log
+*.blg
+*.vspscc
+*.vssscc
+
+# Node.js / Next.js
+node_modules/
+.npm
+.yarn/
+.pnpm-store/
+.next/
+.out/
+.cache/
+.vercel/
+.vercel_build_output/
+.vercel_cache/
+.vscode/
+.env
+.env*.local
+.DS_Store
+
+# React Native / Mobile
+android/
+ios/
+*.apk
+*.app
+*.ipa
+*.xcworkspace
+*.xcodeproj
+*.gradle/
+
+# IDE / Editor
+.idea/
+*.swp
+*.swo
+*~
+.vs/
+*.user
+*.userosscache
+*.sln.docstates
+
+# Rider
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Logs
+logs/
+*.log
+
+# Test results
+TestResults/
+*.trx
+*.coverage
+coverag.xml
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+
+# Deployment
+.azure/
+.docker/
+.terraform/
+*.tfstate
+*.tfstate.backup

@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\GymPlatform.SharedKernel\GymPlatform.SharedKernel.csproj" />
+    <ProjectReference Include="..\GymPlatform.Modules.Membership\GymPlatform.Modules.Membership.csproj" />
+    <ProjectReference Include="..\GymPlatform.Modules.Training\GymPlatform.Modules.Training.csproj" />
+    <ProjectReference Include="..\GymPlatform.Modules.Financial\GymPlatform.Modules.Financial.csproj" />
+    <ProjectReference Include="..\GymPlatform.Modules.Communication\GymPlatform.Modules.Communication.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
