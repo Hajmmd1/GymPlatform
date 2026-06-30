@@ -1,0 +1,25 @@
+using GymPlatform.Modules.Training.Application.DTOs;
+using GymPlatform.Modules.Training.Application.Interfaces;
+using GymPlatform.Modules.Training.Domain.Enums;
+
+namespace GymPlatform.Modules.Training.Application.Commands.CreateExercise;
+
+public sealed class CreateExerciseCommand : ICommand<ExerciseResponse>
+{
+    public CreateExerciseCommand(string name, string? description, ExerciseCategory category, DifficultyLevel difficulty, Guid coachId, string? equipmentName)
+    {
+        Name = name;
+        Description = description;
+        Category = category;
+        Difficulty = difficulty;
+        CoachId = coachId;
+        EquipmentName = equipmentName;
+    }
+
+    public string Name { get; }
+    public string? Description { get; }
+    public ExerciseCategory Category { get; }
+    public DifficultyLevel Difficulty { get; }
+    public Guid CoachId { get; }
+    public string? EquipmentName { get; }
+}
