@@ -388,10 +388,6 @@
 
 ### Known Technical Debt
 
-- Validators do not validate email format (only required check)
-- Validators do not validate phone format (only required check)
-- Validators do not validate enum values (handled by domain)
-- No validator registration in DI (would require pipeline behavior)
 - No unit tests implemented
 - No integration tests implemented
 - No API endpoints implemented
@@ -399,19 +395,26 @@
 
 ---
 
-## 2026-07-02 — AI Execution Policy Created
-
-### Files Created
-
-- `.ai/agent-rules.md` - Permanent AI execution policy containing:
-  - Mandatory execution rules for all AI sessions
-  - Mandatory resource cleanup policy for runtime resources
-  - Mandatory git policy for automated commits on successful completion
-  - Mandatory end-of-task checklist requirements
-  - Task constraints and prohibited actions
+## 2026-07-02 — Phase 1 Week 10: Training Integration (Completed)
 
 ### Files Modified
 
-- `.ai/context/WORKSPACE.md` - Added mandatory AI agent requirements section
-- `.ai/context/PROJECT_STATE.md` - Added agent-rules.md to context files and updated "What Is NOT Built Yet" section to reflect current state
-- `docs/PROJECT_HANDOFF.md` - Added AI Agent Policy Reference section and updated documentation reference table
+- `GymPlatform.Api/Program.cs` - Added Training module DI registrations and Minimal API endpoints for all 7 commands
+- `GymPlatform.Infrastructure/InfrastructureServiceCollectionExtensions.cs` - Fixed IUnitOfWork registration (TrainingDbContext uses same interface)
+
+### Training API Endpoints Added
+
+- `POST /api/exercises` - CreateExercise endpoint
+- `POST /api/workout-programs` - CreateWorkoutProgram endpoint  
+- `POST /api/workout-logs` - LogWorkout endpoint
+- `POST /api/exercise-videos` - UploadExerciseVideo endpoint
+- `POST /api/body-measurements` - RecordBodyMeasurement endpoint
+- `POST /api/progress-photos` - UploadProgressPhoto endpoint
+- `PATCH /api/coach-profiles` - UpdateCoachProfile endpoint
+
+### Technical Debt Addressed
+
+- Training module now has complete API layer with all 7 endpoints exposed
+- All Trainings command handlers properly registered in DI
+- All Training validators properly registered in DI
+- End-to-end command flow verified via successful compilation

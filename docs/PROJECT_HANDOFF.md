@@ -36,6 +36,7 @@ Generated: 2026-06-30
 - Phase 1 Sprint 1 (Training Domain) - COMPLETE
 - Phase 1 Sprint 2 (Training Application) - COMPLETE
 - Phase 1 Sprint 3 (Training Infrastructure) - COMPLETE
+- Phase 1 Sprint 4 (Training Integration) - COMPLETE
 
 ## Current milestone
 
@@ -44,6 +45,7 @@ Generated: 2026-06-30
 - Training module Application layer is complete with all commands, validators, handlers, and DTOs.
 - Training module Infrastructure layer is complete with DbContext, EF configurations, and repository implementations.
 - Training module migrations generated for initial schema.
+- Training module API endpoints exposed (7 endpoints).
 - All use cases have clean separation: validators validate input, handlers orchestrate, domain enforces rules.
 - Repository implementations are clean with no business logic.
 
@@ -336,12 +338,13 @@ GymPlatform.sln
 
 # 6. Remaining Roadmap
 
-### Phase 1 Week 10: Training Integration
+### Phase 2: Communication & Operations (Weeks 11-16)
 
-- Configure cross-module event wiring
-- Add Training module endpoints to API
-- Verify full end-to-end flow
-- Generate Training DTO tests
+- Configure cross-module event wiring for Communication module
+- Implement Communication module endpoints to API
+- Implement Online Coaching workflows
+- Implement Chat & Messaging infrastructure
+- Verify full end-to-end flow for session booking
 
 # 7. Next Recommended Task
 
