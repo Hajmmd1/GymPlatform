@@ -1,3 +1,7 @@
+# AI Agent Requirements
+
+**MANDATORY READING**: All future AI agents MUST read `.ai/agent-rules.md` before starting any work. This file contains permanent execution rules, cleanup policies, and git policies that must be followed on every session.
+
 # Workspace Context
 
 - Last Updated: 2026-06-28T20:35:00+03:30

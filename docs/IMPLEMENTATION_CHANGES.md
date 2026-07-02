@@ -396,3 +396,22 @@
 - No integration tests implemented
 - No API endpoints implemented
 - EF Core migrations not generated
+
+---
+
+## 2026-07-02 — AI Execution Policy Created
+
+### Files Created
+
+- `.ai/agent-rules.md` - Permanent AI execution policy containing:
+  - Mandatory execution rules for all AI sessions
+  - Mandatory resource cleanup policy for runtime resources
+  - Mandatory git policy for automated commits on successful completion
+  - Mandatory end-of-task checklist requirements
+  - Task constraints and prohibited actions
+
+### Files Modified
+
+- `.ai/context/WORKSPACE.md` - Added mandatory AI agent requirements section
+- `.ai/context/PROJECT_STATE.md` - Added agent-rules.md to context files and updated "What Is NOT Built Yet" section to reflect current state
+- `docs/PROJECT_HANDOFF.md` - Added AI Agent Policy Reference section and updated documentation reference table

@@ -351,17 +351,9 @@ Proceed with Phase 1 Week 10 (Training Integration). The shared infrastructure f
 - Training module migrations generated
 - DI registrations updated
 
-# 8. Documentation Context Reference
+# 8. AI Agent Policy Reference
 
-The `.ai/context/` directory serves as the single source of truth for all implementation decisions:
-
-- `.ai/context/PRODUCT_BLUEPRINT.md` - Product vision, modules, features, MVP
-- `.ai/context/FUNCTIONAL_REQUIREMENTS.md` - User stories, business rules, permissions per module
-- `.ai/context/NON_FUNCTIONAL_REQUIREMENTS.md` - Performance, security, scalability requirements
-- `.ai/context/DATABASE_BLUEPRINT.md` - Entity design, relationships, aggregate boundaries
-- `.ai/context/API_BLUEPRINT.md` - REST API patterns, versioning, authentication
-- `.ai/context/UI_UX_BLUEPRINT.md` - Screen specifications, component library, responsive behavior
-- `.ai/context/MASTER_ROADMAP.md` - Development phases, sprints, milestones, release planning
+**MANDATORY**: All AI agents MUST read `.ai/agent-rules.md` before starting any work. This file contains permanent execution rules, mandatory cleanup policies, and git policies that must be followed on every session.
 
 # 9. Documentation Files Reference
 
@@ -369,6 +361,7 @@ All documentation is available in `.ai/context/` and `docs/`:
 
 | File | Purpose | Lines |
 |------|---------|-------|
+| `.ai/agent-rules.md` | Permanent AI execution policy | - |
 | `.ai/context/PRODUCT_BLUEPRINT.md` | Core product specification | 1,516 |
 | `.ai/context/FUNCTIONAL_REQUIREMENTS.md` | Functional requirements | 650+ |
 | `.ai/context/NON_FUNCTIONAL_REQUIREMENTS.md` | Quality attributes | 400+ |

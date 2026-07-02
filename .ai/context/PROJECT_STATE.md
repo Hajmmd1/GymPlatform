@@ -23,25 +23,23 @@
 - `.ai/context/API_BLUEPRINT.md` - REST API design, versioning, authentication, and patterns
 - `.ai/context/UI_UX_BLUEPRINT.md` - Screen specifications, components, responsive behavior
 - `.ai/context/MASTER_ROADMAP.md` - Development phases, sprints, milestones, release planning
+- `.ai/agent-rules.md` - Permanent AI execution policy and mandatory cleanup rules
 
 ## What Exists (Structure Only)
 
 - Root files: `README.md`, `CONTRIBUTING.md`, `AGENTS.md`, `.gitignore`
-- Context files: `.ai/context/WORKSPACE.md`, `.ai/context/AI_MEMORY.md`, `.ai/context/PROJECT_STATE.md`, and 5 new documentation files
-- AI guidance files: `.ai/project-rules.md`, `.ai/workflow.md`, `.ai/coding-standards.md`, `.ai/architecture-rules.md`, `.ai/backend-rules.md`, `.ai/frontend-rules.md`, `.ai/mobile-rules.md`, `.ai/database-rules.md`, `.ai/security-rules.md`
+- Context files: `.ai/context/WORKSPACE.md`, `.ai/context/AI_MEMORY.md`, `.ai/context/PROJECT_STATE.md`, and 6 new documentation files
+- AI guidance files: `.ai/project-rules.md`, `.ai/workflow.md`, `.ai/coding-standards.md`, `.ai/architecture-rules.md`, `.ai/backend-rules.md`, `.ai/frontend-rules.md`, `.ai/mobile-rules.md`, `.ai/database-rules.md`, `.ai/security-rules.md`, `.ai/agent-rules.md`
 - Product documentation: `docs/VISION.md`, `docs/MASTER_PRD.md`, `docs/BUSINESS_RULES.md`, `docs/USER_ROLES.md`, `docs/UI_UX.md`, `docs/API_DESIGN.md`, `docs/DATABASE.md`, `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`, `docs/CHANGELOG.md`, `docs/PROJECT_HANDOFF.md`, `docs/IMPLEMENTATION_CHANGES.md`
 - Decision records: `adr/README.md` and archived ADR files under `adr/Archive/`
 - Support folders: `checklists/`, `prompts/`, `scripts/`, `tasks/`, `infra/`
 
 ## What Is NOT Built Yet
 
-- Application code
-- Backend project (scaffolding exists but incomplete)
 - Frontend project
 - Mobile project
-- Database schema (EF Core configs exist)
-- Database migrations (not generated)
-- API endpoints (not implemented)
+- Database schema (created but not migrated to database)
+- Database migrations (EF Core migrations generated, not applied)
 - UI implementation
 - Authentication implementation
 - Billing implementation
@@ -49,7 +47,7 @@
 - Booking implementation
 - Trainer workflows
 - Member workflows
-- Automated tests
+- Automated tests (unit tests created, not executed against database)
 - CI/CD pipeline
 - Deployment environment
 
