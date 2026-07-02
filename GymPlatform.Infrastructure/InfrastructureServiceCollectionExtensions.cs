@@ -1,5 +1,6 @@
 using GymPlatform.Infrastructure.Persistence;
 using GymPlatform.Infrastructure.Persistence.Repositories;
+using GymPlatform.Modules.Communication.Domain.Repositories;
 using GymPlatform.Modules.Membership.Domain.Repositories;
 using GymPlatform.Modules.Training.Domain.Repositories;
 using GymPlatform.SharedKernel;
@@ -20,6 +21,11 @@ public static class InfrastructureServiceCollectionExtensions
             throw new InvalidOperationException("SQL Server connection string 'Default' is required.");
         }
 
+        services.AddDbContext<CommunicationDbContext>(options =>
+        {
+            options.UseSqlServer(connectionString);
+        });
+
         services.AddDbContext<MembershipDbContext>(options =>
         {
             options.UseSqlServer(connectionString);
@@ -29,6 +35,13 @@ public static class InfrastructureServiceCollectionExtensions
         {
             options.UseSqlServer(connectionString);
         });
+
+        services.AddScoped<ICommunicationUnitOfWork>(sp => sp.GetRequiredService<CommunicationDbContext>());
+
+        services.AddScoped<IRoomRepository, RoomRepository>();
+        services.AddScoped<ISessionRepository, SessionRepository>();
+        services.AddScoped<IBookingRepository, BookingRepository>();
+        services.AddScoped<ICoachAvailabilityRepository, CoachAvailabilityRepository>();
 
         services.AddScoped<IGymRepository, GymRepository>();
         services.AddScoped<IMemberRepository, MemberRepository>();

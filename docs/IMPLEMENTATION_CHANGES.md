@@ -1,3 +1,102 @@
+## 2026-07-02 — Phase 2 Communication Module Calendar Implementation (Sprint 1)
+
+### Files Created
+
+#### Communication Domain Layer
+
+- `GymPlatform.Modules.Communication/Domain/Entities/Session.cs` - Session aggregate root with bookings child collection, overlap validation, coach/room assignment
+- `GymPlatform.Modules.Communication/Domain/Entities/Booking.cs` - Booking entity with status transitions and domain events
+- `GymPlatform.Modules.Communication/Domain/Entities/Room.cs` - Room entity with capacity and activation lifecycle
+- `GymPlatform.Modules.Communication/Domain/Entities/CoachAvailability.cs` - Coach availability blocks with overlap validation
+- `GymPlatform.Modules.Communication/Domain/Enums/SessionType.cs` - Session type enumeration (Class, PrivateTraining, Consultation)
+- `GymPlatform.Modules.Communication/Domain/Enums/BookingStatus.cs` - Booking status enumeration (Confirmed, Cancelled, Attended, NoShow)
+- `GymPlatform.Modules.Communication/Domain/Events/SessionCreated.cs` - Domain event when session is scheduled
+- `GymPlatform.Modules.Communication/Domain/Events/SessionCancelled.cs` - Domain event when session is cancelled
+- `GymPlatform.Modules.Communication/Domain/Events/BookingCreated.cs` - Domain event when member books a session
+- `GymPlatform.Modules.Communication/Domain/Events/BookingCancelled.cs` - Domain event when booking is cancelled
+- `GymPlatform.Modules.Communication/Domain/Exceptions/CommunicationDomainException.cs` - Base domain exception for Calendar module
+- `GymPlatform.Modules.Communication/Domain/Repositories/ISessionRepository.cs` - Repository interface for Session aggregate
+- `GymPlatform.Modules.Communication/Domain/Repositories/IBookingRepository.cs` - Repository interface for Booking aggregate
+- `GymPlatform.Modules.Communication/Domain/Repositories/IRoomRepository.cs` - Repository interface for Room aggregate
+- `GymPlatform.Modules.Communication/Domain/Repositories/ICoachAvailabilityRepository.cs` - Repository interface for CoachAvailability
+- `GymPlatform.Modules.Communication/Domain/Repositories/ICommunicationUnitOfWork.cs` - Communication-specific unit of work interface
+
+#### Communication Application Layer
+
+- `GymPlatform.Modules.Communication/Application/Interfaces/ICommand.cs` - Generic command interface
+- `GymPlatform.Modules.Communication/Application/Interfaces/ICommandHandler.cs` - Generic command handler interface
+- `GymPlatform.Modules.Communication/Application/Interfaces/ICommandValidator.cs` - Generic command validator interface
+- `GymPlatform.Modules.Communication/Application/DTOs/CreateRoomRequest.cs` - Room creation request DTO
+- `GymPlatform.Modules.Communication/Application/DTOs/RoomResponse.cs` - Room response DTO
+- `GymPlatform.Modules.Communication/Application/DTOs/CreateSessionRequest.cs` - Session creation request DTO
+- `GymPlatform.Modules.Communication/Application/DTOs/SessionResponse.cs` - Session response DTO
+- `GymPlatform.Modules.Communication/Application/DTOs/BookSessionRequest.cs` - Booking request DTO
+- `GymPlatform.Modules.Communication/Application/DTOs/BookingResponse.cs` - Booking response DTO
+- `GymPlatform.Modules.Communication/Application/DTOs/SetCoachAvailabilityRequest.cs` - Coach availability request DTO
+- `GymPlatform.Modules.Communication/Application/DTOs/CoachAvailabilityResponse.cs` - Coach availability response DTO
+- `GymPlatform.Modules.Communication/Application/Commands/CreateRoom/CreateRoomCommand.cs` - Room creation command
+- `GymPlatform.Modules.Communication/Application/Commands/CreateRoom/CreateRoomCommandValidator.cs` - Room creation validation
+- `GymPlatform.Modules.Communication/Application/Commands/CreateRoom/CreateRoomCommandHandler.cs` - Room creation handler
+- `GymPlatform.Modules.Communication/Application/Commands/CreateSession/CreateSessionCommand.cs` - Session creation command
+- `GymPlatform.Modules.Communication/Application/Commands/CreateSession/CreateSessionCommandValidator.cs` - Session creation validation
+- `GymPlatform.Modules.Communication/Application/Commands/CreateSession/CreateSessionCommandHandler.cs` - Session creation handler with room overlap check
+- `GymPlatform.Modules.Communication/Application/Commands/BookSession/BookSessionCommand.cs` - Booking command
+- `GymPlatform.Modules.Communication/Application/Commands/BookSession/BookSessionCommandValidator.cs` - Booking validation
+- `GymPlatform.Modules.Communication/Application/Commands/BookSession/BookSessionCommandHandler.cs` - Booking handler
+- `GymPlatform.Modules.Communication/Application/Commands/CancelBooking/CancelBookingCommand.cs` - Cancel booking command
+- `GymPlatform.Modules.Communication/Application/Commands/CancelBooking/CancelBookingCommandValidator.cs` - Cancel booking validation
+- `GymPlatform.Modules.Communication/Application/Commands/CancelBooking/CancelBookingCommandHandler.cs` - Cancel booking handler
+- `GymPlatform.Modules.Communication/Application/Commands/CancelSession/CancelSessionCommand.cs` - Cancel session command
+- `GymPlatform.Modules.Communication/Application/Commands/CancelSession/CancelSessionCommandValidator.cs` - Cancel session validation
+- `GymPlatform.Modules.Communication/Application/Commands/CancelSession/CancelSessionCommandHandler.cs` - Cancel session handler
+- `GymPlatform.Modules.Communication/Application/Commands/SetCoachAvailability/SetCoachAvailabilityCommand.cs` - Coach availability command
+- `GymPlatform.Modules.Communication/Application/Commands/SetCoachAvailability/SetCoachAvailabilityCommandValidator.cs` - Coach availability validation
+- `GymPlatform.Modules.Communication/Application/Commands/SetCoachAvailability/SetCoachAvailabilityCommandHandler.cs` - Coach availability handler
+
+#### Communication Infrastructure Layer
+
+- `GymPlatform.Infrastructure/Persistence/CommunicationDbContext.cs` - Communication DbContext implementing ICommunicationUnitOfWork and IUnitOfWork
+- `GymPlatform.Infrastructure/Persistence/Configurations/RoomConfiguration.cs` - EF configuration for Room entity
+- `GymPlatform.Infrastructure/Persistence/Configurations/SessionConfiguration.cs` - EF configuration for Session entity with indexes
+- `GymPlatform.Infrastructure/Persistence/Configurations/BookingConfiguration.cs` - EF configuration for Booking entity
+- `GymPlatform.Infrastructure/Persistence/Configurations/CoachAvailabilityConfiguration.cs` - EF configuration for CoachAvailability entity
+- `GymPlatform.Infrastructure/Persistence/Repositories/RoomRepository.cs` - Room repository implementation
+- `GymPlatform.Infrastructure/Persistence/Repositories/SessionRepository.cs` - Session repository implementation with date range queries
+- `GymPlatform.Infrastructure/Persistence/Repositories/BookingRepository.cs` - Booking repository implementation with conflict check
+- `GymPlatform.Infrastructure/Persistence/Repositories/CoachAvailabilityRepository.cs` - CoachAvailability repository implementation
+
+#### Communication Unit Tests
+
+- `GymPlatform.Modules.Communication.Tests/GymPlatform.Modules.Communication.Tests.csproj` - Test project with xUnit, Moq, FluentAssertions
+- `GymPlatform.Modules.Communication.Tests/Application/Commands/CreateRoom/CreateRoomCommandHandlerTests.cs` - Room creation handler tests
+- `GymPlatform.Modules.Communication.Tests/Application/Commands/CreateSession/CreateSessionCommandHandlerTests.cs` - Session creation handler tests
+- `GymPlatform.Modules.Communication.Tests/Application/Commands/BookSession/BookSessionCommandHandlerTests.cs` - Booking handler tests
+
+### Files Modified
+
+- `GymPlatform.Modules.Communication/GymPlatform.Modules.Communication.csproj` - Updated with Microsoft.Extensions.DependencyInjection.Abstractions package reference
+- `GymPlatform.Infrastructure/InfrastructureServiceCollectionExtensions.cs` - Added CommunicationDbContext registration and 4 Communication repository DI registrations
+- `GymPlatform.Api/Program.cs` - Added Communication module handler/validator DI registrations and 6 Calendar API endpoints
+
+### Calendar API Endpoints Added
+
+- `POST /api/rooms` - Create room/resource
+- `POST /api/sessions` - Create training session (with room overlap validation)
+- `POST /api/bookings` - Book a session for authenticated member
+- `POST /api/sessions/{sessionId}/cancel` - Cancel a session
+- `POST /api/bookings/{bookingId}/cancel` - Cancel a booking
+- `POST /api/coaches/{coachId}/availability` - Set coach availability block
+
+### Technical Debt Addressed
+
+- Communication module now has complete Domain, Application, Infrastructure layers
+- IUnitOfWork split into module-specific interfaces to fix multi-DbContext save pattern
+- Session aggregate enforces no-overlap invariant for coach/room scheduling
+- Room activation/deactivation lifecycle managed in domain
+- Booking status transitions validated in domain
+- EF configurations handle module-specific entities with proper indexes
+- Calendar endpoints authenticate member via ICurrentUserService
+
 ## 2026-06-30 — Phase 1 Training Module Infrastructure Layer (Sprint 3 - Weeks 8-9)
 
 ### Files Created

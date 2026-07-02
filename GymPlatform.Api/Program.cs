@@ -58,6 +58,22 @@ internal class Program
         builder.Services.AddScoped<GymPlatform.Modules.Training.Application.Interfaces.ICommandValidator<UploadProgressPhotoCommand>, UploadProgressPhotoCommandValidator>();
         builder.Services.AddScoped<GymPlatform.Modules.Training.Application.Interfaces.ICommandValidator<UpdateCoachProfileCommand>, UpdateCoachProfileCommandValidator>();
 
+        // Communication command handlers
+        builder.Services.AddScoped<GymPlatform.Modules.Communication.Application.Interfaces.ICommandHandler<GymPlatform.Modules.Communication.Application.Commands.CreateRoom.CreateRoomCommand, GymPlatform.Modules.Communication.Application.DTOs.RoomResponse>, GymPlatform.Modules.Communication.Application.Commands.CreateRoom.CreateRoomCommandHandler>();
+        builder.Services.AddScoped<GymPlatform.Modules.Communication.Application.Interfaces.ICommandHandler<GymPlatform.Modules.Communication.Application.Commands.CreateSession.CreateSessionCommand, GymPlatform.Modules.Communication.Application.DTOs.SessionResponse>, GymPlatform.Modules.Communication.Application.Commands.CreateSession.CreateSessionCommandHandler>();
+        builder.Services.AddScoped<GymPlatform.Modules.Communication.Application.Interfaces.ICommandHandler<GymPlatform.Modules.Communication.Application.Commands.BookSession.BookSessionCommand, GymPlatform.Modules.Communication.Application.DTOs.BookingResponse>, GymPlatform.Modules.Communication.Application.Commands.BookSession.BookSessionCommandHandler>();
+        builder.Services.AddScoped<GymPlatform.Modules.Communication.Application.Interfaces.ICommandHandler<GymPlatform.Modules.Communication.Application.Commands.CancelBooking.CancelBookingCommand, GymPlatform.Modules.Communication.Application.DTOs.BookingResponse>, GymPlatform.Modules.Communication.Application.Commands.CancelBooking.CancelBookingCommandHandler>();
+        builder.Services.AddScoped<GymPlatform.Modules.Communication.Application.Interfaces.ICommandHandler<GymPlatform.Modules.Communication.Application.Commands.CancelSession.CancelSessionCommand, GymPlatform.Modules.Communication.Application.DTOs.SessionResponse>, GymPlatform.Modules.Communication.Application.Commands.CancelSession.CancelSessionCommandHandler>();
+        builder.Services.AddScoped<GymPlatform.Modules.Communication.Application.Interfaces.ICommandHandler<GymPlatform.Modules.Communication.Application.Commands.SetCoachAvailability.SetCoachAvailabilityCommand, GymPlatform.Modules.Communication.Application.DTOs.CoachAvailabilityResponse>, GymPlatform.Modules.Communication.Application.Commands.SetCoachAvailability.SetCoachAvailabilityCommandHandler>();
+
+        // Communication validators
+        builder.Services.AddScoped<GymPlatform.Modules.Communication.Application.Interfaces.ICommandValidator<GymPlatform.Modules.Communication.Application.Commands.CreateRoom.CreateRoomCommand>, GymPlatform.Modules.Communication.Application.Commands.CreateRoom.CreateRoomCommandValidator>();
+        builder.Services.AddScoped<GymPlatform.Modules.Communication.Application.Interfaces.ICommandValidator<GymPlatform.Modules.Communication.Application.Commands.CreateSession.CreateSessionCommand>, GymPlatform.Modules.Communication.Application.Commands.CreateSession.CreateSessionCommandValidator>();
+        builder.Services.AddScoped<GymPlatform.Modules.Communication.Application.Interfaces.ICommandValidator<GymPlatform.Modules.Communication.Application.Commands.BookSession.BookSessionCommand>, GymPlatform.Modules.Communication.Application.Commands.BookSession.BookSessionCommandValidator>();
+        builder.Services.AddScoped<GymPlatform.Modules.Communication.Application.Interfaces.ICommandValidator<GymPlatform.Modules.Communication.Application.Commands.CancelBooking.CancelBookingCommand>, GymPlatform.Modules.Communication.Application.Commands.CancelBooking.CancelBookingCommandValidator>();
+        builder.Services.AddScoped<GymPlatform.Modules.Communication.Application.Interfaces.ICommandValidator<GymPlatform.Modules.Communication.Application.Commands.CancelSession.CancelSessionCommand>, GymPlatform.Modules.Communication.Application.Commands.CancelSession.CancelSessionCommandValidator>();
+        builder.Services.AddScoped<GymPlatform.Modules.Communication.Application.Interfaces.ICommandValidator<GymPlatform.Modules.Communication.Application.Commands.SetCoachAvailability.SetCoachAvailabilityCommand>, GymPlatform.Modules.Communication.Application.Commands.SetCoachAvailability.SetCoachAvailabilityCommandValidator>();
+
         var app = builder.Build();
 
         if (app.Environment.IsDevelopment())
@@ -287,6 +303,129 @@ internal class Program
                 });
         })
         .WithName("UpdateCoachProfile");
+
+        // Calendar endpoints - Rooms
+        app.MapPost("/api/rooms", async (
+            [FromBody] GymPlatform.Modules.Communication.Application.DTOs.CreateRoomRequest request,
+            [FromServices] GymPlatform.Modules.Communication.Application.Interfaces.ICommandHandler<GymPlatform.Modules.Communication.Application.Commands.CreateRoom.CreateRoomCommand, GymPlatform.Modules.Communication.Application.DTOs.RoomResponse> handler) =>
+        {
+            var command = new GymPlatform.Modules.Communication.Application.Commands.CreateRoom.CreateRoomCommand(request.GymId, request.Name, request.Capacity);
+            var result = await handler.HandleAsync(command);
+
+            return result.IsSuccess
+                ? Results.Created($"/api/rooms/{result.Value!.Id}", result.Value)
+                : Results.BadRequest(new ProblemDetails
+                {
+                    Status = 400,
+                    Title = "Validation Error",
+                    Detail = result.Error,
+                    Type = "https://httpstatuses.com/400"
+                });
+        })
+        .WithName("CreateRoom");
+
+        // Calendar endpoints - Sessions
+        app.MapPost("/api/sessions", async (
+            [FromBody] GymPlatform.Modules.Communication.Application.DTOs.CreateSessionRequest request,
+            [FromServices] GymPlatform.Modules.Communication.Application.Interfaces.ICommandHandler<GymPlatform.Modules.Communication.Application.Commands.CreateSession.CreateSessionCommand, GymPlatform.Modules.Communication.Application.DTOs.SessionResponse> handler) =>
+        {
+            var command = new GymPlatform.Modules.Communication.Application.Commands.CreateSession.CreateSessionCommand(request.GymId, request.CoachId, request.RoomId, request.Name, request.SessionType, request.StartTime, request.EndTime, request.MaxCapacity);
+            var result = await handler.HandleAsync(command);
+
+            return result.IsSuccess
+                ? Results.Created($"/api/sessions/{result.Value!.Id}", result.Value)
+                : Results.BadRequest(new ProblemDetails
+                {
+                    Status = 400,
+                    Title = "Validation Error",
+                    Detail = result.Error,
+                    Type = "https://httpstatuses.com/400"
+                });
+        })
+        .WithName("CreateSession");
+
+        // Calendar endpoints - Bookings
+        app.MapPost("/api/bookings", async (
+            [FromBody] GymPlatform.Modules.Communication.Application.DTOs.BookSessionRequest request,
+            [FromServices] GymPlatform.Modules.Communication.Application.Interfaces.ICommandHandler<GymPlatform.Modules.Communication.Application.Commands.BookSession.BookSessionCommand, GymPlatform.Modules.Communication.Application.DTOs.BookingResponse> handler,
+            [FromServices] GymPlatform.SharedKernel.ICurrentUserService currentUserService) =>
+        {
+            var memberId = currentUserService.UserId ?? Guid.Empty;
+            var command = new GymPlatform.Modules.Communication.Application.Commands.BookSession.BookSessionCommand(request.SessionId, memberId);
+            var result = await handler.HandleAsync(command);
+
+            return result.IsSuccess
+                ? Results.Created($"/api/bookings/{result.Value!.Id}", result.Value)
+                : Results.BadRequest(new ProblemDetails
+                {
+                    Status = 400,
+                    Title = "Validation Error",
+                    Detail = result.Error,
+                    Type = "https://httpstatuses.com/400"
+                });
+        })
+        .WithName("BookSession");
+
+        // Calendar endpoints - Cancel Session
+        app.MapPost("/api/sessions/{sessionId:guid}/cancel", async (
+            [FromRoute] Guid sessionId,
+            [FromServices] GymPlatform.Modules.Communication.Application.Interfaces.ICommandHandler<GymPlatform.Modules.Communication.Application.Commands.CancelSession.CancelSessionCommand, GymPlatform.Modules.Communication.Application.DTOs.SessionResponse> handler) =>
+        {
+            var command = new GymPlatform.Modules.Communication.Application.Commands.CancelSession.CancelSessionCommand(sessionId);
+            var result = await handler.HandleAsync(command);
+
+            return result.IsSuccess
+                ? Results.Ok(result.Value)
+                : Results.BadRequest(new ProblemDetails
+                {
+                    Status = 400,
+                    Title = "Validation Error",
+                    Detail = result.Error,
+                    Type = "https://httpstatuses.com/400"
+                });
+        })
+        .WithName("CancelSession");
+
+        // Calendar endpoints - Cancel Booking
+        app.MapPost("/api/bookings/{bookingId:guid}/cancel", async (
+            [FromRoute] Guid bookingId,
+            [FromServices] GymPlatform.Modules.Communication.Application.Interfaces.ICommandHandler<GymPlatform.Modules.Communication.Application.Commands.CancelBooking.CancelBookingCommand, GymPlatform.Modules.Communication.Application.DTOs.BookingResponse> handler) =>
+        {
+            var command = new GymPlatform.Modules.Communication.Application.Commands.CancelBooking.CancelBookingCommand(bookingId);
+            var result = await handler.HandleAsync(command);
+
+            return result.IsSuccess
+                ? Results.Ok(result.Value)
+                : Results.BadRequest(new ProblemDetails
+                {
+                    Status = 400,
+                    Title = "Validation Error",
+                    Detail = result.Error,
+                    Type = "https://httpstatuses.com/400"
+                });
+        })
+        .WithName("CancelBooking");
+
+        // Calendar endpoints - Coach Availability
+        app.MapPost("/api/coaches/{coachId:guid}/availability", async (
+            [FromRoute] Guid coachId,
+            [FromBody] GymPlatform.Modules.Communication.Application.DTOs.SetCoachAvailabilityRequest request,
+            [FromServices] GymPlatform.Modules.Communication.Application.Interfaces.ICommandHandler<GymPlatform.Modules.Communication.Application.Commands.SetCoachAvailability.SetCoachAvailabilityCommand, GymPlatform.Modules.Communication.Application.DTOs.CoachAvailabilityResponse> handler) =>
+        {
+            var command = new GymPlatform.Modules.Communication.Application.Commands.SetCoachAvailability.SetCoachAvailabilityCommand(coachId, request.GymId, request.StartTime, request.EndTime, request.IsAvailable);
+            var result = await handler.HandleAsync(command);
+
+            return result.IsSuccess
+                ? Results.Created($"/api/coaches/{coachId}/availability/{result.Value!.Id}", result.Value)
+                : Results.BadRequest(new ProblemDetails
+                {
+                    Status = 400,
+                    Title = "Validation Error",
+                    Detail = result.Error,
+                    Type = "https://httpstatuses.com/400"
+                });
+        })
+        .WithName("SetCoachAvailability");
 
         app.Run();
     }
