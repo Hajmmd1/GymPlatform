@@ -1,227 +1,334 @@
 # Database Design
 
 ## Purpose
-Documents database schema, entity relationships, indexing strategy, and data access patterns.
+Documents the actual database architecture for GymPlatform including SQL Server schema, EF Core entity configurations, multi-tenant strategy, and migration approach.
 
 ## Scope
-PostgreSQL schema, migration strategy, performance optimization, and data integrity rules.
+SQL Server schema design, EF Core DbContext configurations, entity relationships, multi-tenant isolation, indexing strategy, and migration workflow.
 
 ## Owner
-Database Architecture Lead
+Database Architecture Lead / AI Documentation Agent
 
 ## Status
-Draft - Under Review
+Active — Updated 2026-07-03
 
 ## Last Updated
-2026-06-17
+2026-07-03
 
-> **Note:** This document contains preliminary database design considerations. All technology choices are subject to formal approval.
+> **Note**: This document reflects current implementation. For conceptual database design, refer to `.ai/context/DATABASE_BLUEPRINT.md`. For actual entity models, see the Infrastructure project EF Configurations.
 
 ---
 
 ## Table of Contents
-1. [Database Overview](#database-overview)
-2. [Entity Relationship Diagram](#entity-relationship-diagram)
-3. [Core Schema](#core-schema)
-4. [Indexing Strategy](#indexing-strategy)
-5. [Migration Strategy](#migration-strategy)
-6. [Performance Optimization](#performance-optimization)
-7. [Backup and Recovery](#backup-and-recovery)
+1. [Database Technology](#database-technology)
+2. [Module Schema Organization](#module-schema-organization)
+3. [Multi-Tenant Strategy](#multi-tenant-strategy)
+4. [Entity Model Mapping](#entity-model-mapping)
+5. [Indexing Strategy](#indexing-strategy)
+6. [Migration Strategy](#migration-strategy)
+7. [Performance Optimization](#performance-optimization)
 
 ---
 
-## Database Overview
+## Database Technology
 
-### Database Technology
-- PostgreSQL 16+ (Azure Database for PostgreSQL Flexible Server)
-- Read replicas for scaling reads
-- Logical replication for multi-region
+| Technology | Version | Notes |
+|-----------|---------|-------|
+| Database Engine | SQL Server / LocalDB | Latest supported |
+| ORM | Entity Framework Core | 10.0.9 |
+| Migrations | EF Core Migrations | Built-in tooling |
+| Design-time Factory | `IDesignTimeDbContextFactory<T>` | Required for migrations |
 
-### Schema Organization
-- `public` schema for core entities
-- `audit` schema for audit trails
-- `analytics` schema for reporting (if separate)
+### Current DbContexts
 
-### Naming Convention
-- Tables: plural snake_case (`users`, `gym_memberships`)
-- Columns: snake_case (`first_name`, `created_at`)
-- Indexes: `idx_{table}_{columns}` (`idx_users_email`)
-- Constraints: `ck_{table}_{condition}`, `fk_{table}_{ref}`
-
----
-
-## Entity Relationship Diagram
-
-### Core Entities
-```
-Organizations (1) ←→ (M) Locations
-     ↑                        ↑
-     │                        │
-     ↓                        ↓
-  Memberships (M) ←→ (M) Members
-     ↑                        ↑
-     │                        │
-     ↓                        ↓
-  Payments           Classes ←→ (M) Bookings
-                             ↑
-                             │
-                    Trainers ←→ (M) TrainerSchedules
-```
-
-### Entity Descriptions
-- **Organizations** - Gym business entities
-- **Locations** - Physical gym locations
-- **Members** - Gym members/customers
-- **Memberships** - Membership plans and status
-- **Classes** - Scheduled fitness classes
-- **Trainers** - Fitness instructors
-- **Bookings** - Class reservations
-- **Payments** - Billing transactions
+| DbContext | Module | Schema | Status |
+|-----------|--------|--------|--------|
+| `MembershipDbContext` | Membership | `Membership` | ✅ Implemented |
+| `TrainingDbContext` | Training | `Training` | ✅ Implemented |
+| `CommunicationDbContext` | Communication | `Communication` | ✅ Implemented |
+| `FinancialDbContext` | Financial | `Financial` | 📋 Planned |
 
 ---
 
-## Core Schema
+## Module Schema Organization
 
-### Organizations Table
-```sql
-CREATE TABLE organizations (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL,
-    subdomain VARCHAR(100) UNIQUE NOT NULL,
-    email VARCHAR(255) NOT NULL,
-    phone VARCHAR(50),
-    address TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL,
-    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
-    deleted_at TIMESTAMPTZ
-);
+### Membership Schema (`Membership`)
+
+| Table | Entity | Key Fields |
+|-------|--------|-----------|
+| `Gyms` | `Gym` | Id, Name, Phone, TenantId, IsActive |
+| `Members` | `Member` | Id, GymId, FullName, Email, Phone, TenantId |
+| `Coaches` | `Coach` | Id, GymId, FullName, Email, TenantId |
+
+### Training Schema (`Training`)
+
+| Table | Entity | Key Fields |
+|-------|--------|-----------|
+| `Exercises` | `Exercise` | Id, Name, Description, Category, Difficulty, TenantId |
+| `WorkoutPrograms` | `WorkoutProgram` | Id, Name, Description, IsPublished, TenantId |
+| `ProgramExercises` | `ProgramExercise` | Id, WorkoutProgramId, ExerciseId, Sets, Reps, DisplayOrder |
+| `WorkoutLogs` | `WorkoutLog` | Id, MemberId, WorkoutProgramId, Date, TenantId |
+| `ExerciseVideos` | `ExerciseVideo` | Id, ExerciseId, Url, IsApproved, TenantId |
+| `BodyMeasurements` | `BodyMeasurement` | Id, MemberId, Type, Value, Unit, RecordedAt, TenantId |
+| `ProgressPhotos` | `ProgressPhoto` | Id, MemberId, Url, TakenAt, Notes, TenantId |
+| `CoachProfiles` | `CoachProfile` | Id, CoachId, Specialties, TenantId |
+| `Certifications` | `Certification` | (owned by CoachProfile) |
+
+### Communication Schema (`Communication`)
+
+| Table | Entity | Key Fields |
+|-------|--------|-----------|
+| `Rooms` | `Room` | Id, Name, Capacity, IsActive, TenantId |
+| `Sessions` | `Session` | Id, RoomId, CoachId, Type, StartTime, EndTime, TenantId |
+| `Bookings` | `Booking` | Id, SessionId, MemberId, Status, TenantId |
+| `CoachAvailability` | `CoachAvailability` | Id, CoachId, StartTime, EndTime, TenantId |
+
+### All Tables Require
+- `Id` (uniqueidentifier, primary key, default NEWSEQUENTIALID())
+- `TenantId` (uniqueidentifier, NOT NULL, indexed)
+- `CreatedAt` (datetimeoffset, NOT NULL)
+- `IsDeleted` (bit, NOT NULL, DEFAULT 0) — soft delete planned
+
+---
+
+## Multi-Tenant Strategy
+
+### Strategy: Shared Database, Shared Schema
+
+All tenants share the same database and tables. Data isolation is enforced via:
+
+1. **Database Level (Defense in Depth)**: Row-Level Security (RLS) policies
+2. **Application Level (Primary)**: EF Core Global Query Filters
+
+### EF Core Global Query Filter
+
+```csharp
+// Example in MembershipDbContext
+modelBuilder.Entity<Gym>()
+    .HasQueryFilter(g => g.TenantId == _currentTenantService.TenantId);
+modelBuilder.Entity<Member>()
+    .HasQueryFilter(m => m.TenantId == _currentTenantService.TenantId);
+modelBuilder.Entity<Coach>()
+    .HasQueryFilter(m => m.TenantId == _currentTenantService.TenantId);
 ```
 
-### Members Table
-```sql
-CREATE TABLE members (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    organization_id UUID NOT NULL REFERENCES organizations(id),
-    location_id UUID NOT NULL REFERENCES locations(id),
-    first_name VARCHAR(100) NOT NULL,
-    last_name VARCHAR(100) NOT NULL,
-    email CITEXT UNIQUE NOT NULL,
-    phone CITEXT,
-    date_of_birth DATE,
-    emergency_contact JSONB,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL,
-    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
-    deleted_at TIMESTAMPTZ
-);
+### TenantId Resolution
+
+```csharp
+// ICurrentUserService extracts from JWT
+public interface ICurrentUserService
+{
+    Guid? TenantId { get; }  // From JWT "tenant" claim
+    Guid? UserId { get; }    // From JWT "sub" claim
+    bool IsAuthenticated { get; }
+    IEnumerable<string> Roles { get; }
+}
 ```
 
-### Classes Table
-```sql
-CREATE TABLE classes (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    location_id UUID NOT NULL REFERENCES locations(id),
-    trainer_id UUID REFERENCES trainers(id),
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    start_time TIMESTAMPTZ NOT NULL,
-    end_time TIMESTAMPTZ NOT NULL,
-    capacity INTEGER NOT NULL CHECK (capacity > 0),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL,
-    is_deleted BOOLEAN NOT NULL DEFAULT FALSE
-);
+### Mandatory Rules
+
+- ✅ Every entity MUST have `TenantId` (NOT NULL)
+- ✅ Every entity MUST have `HasQueryFilter()` in DbContext
+- ✅ `TenantId` MUST be set from `ICurrentUserService`, never hardcoded
+- ❌ Never write raw SQL without a `TenantId` filter
+- ❌ Never disable global query filters (`IgnoreQueryFilters()` should never be used)
+
+---
+
+## Entity Model Mapping
+
+### Membership Module (Implemented)
+
+```
+Gym (Aggregate Root)
+├── Id, Name, Phone, TenantId, IsActive, CreatedAt
+└── Navigation: Members, Coaches
+
+Member (Aggregate Root)
+├── Id, GymId, FullName, Email (VO), Phone (VO), TenantId, Status, CreatedAt
+└── Navigation: Gym
+
+Coach (Aggregate Root)
+├── Id, GymId, FullName, Email (VO), Phone (VO), TenantId, CreatedAt
+└── Navigation: Gym
+```
+
+### Training Module (Implemented)
+
+```
+Exercise (Aggregate Root)
+├── Id, Name, Description, Category, Difficulty, MuscleGroups (VO), Equipment (VO), TenantId
+
+WorkoutProgram (Aggregate Root)
+├── Id, Name, Description, IsPublished, Tags, Version, TenantId
+└── Contains: ProgramExercures, ExerciseVideos
+
+WorkoutLog (Aggregate Root)
+├── Id, MemberId, WorkoutProgramId, CompletedAt, Notes, TenantId
+
+ExerciseVideo (Owned by Exercise)
+├── Id, ExerciseId, VideoUrl, IsApproved, TenantId
+
+BodyMeasurement (Aggregate Root)
+├── Id, MemberId, Type, Value, Unit, RecordedAt, TenantId
+
+ProgressPhoto (Aggregate Root)
+├── Id, MemberId, Url, TakenAt, Notes, IsPrivate, TenantId
+
+CoachProfile (Aggregate Root)
+├── Id, CoachId, Specialties, Certifications (Owned), TenantId
+```
+
+### Communication Module (Implemented)
+
+```
+Room (Aggregate Root)
+├── Id, Name, Capacity, IsActive, TenantId, CreatedAt
+
+Session (Aggregate Root)
+├── Id, RoomId, CoachId, Type, StartTime, EndTime, TenantId, CreatedAt
+└── Contains: Bookings
+
+Booking (Entity, child of Session)
+├── Id, SessionId, MemberId, Status, TenantId, CreatedAt
+
+CoachAvailability (Aggregate Root)
+├── Id, CoachId, StartTime, EndTime, TenantId, CreatedAt
 ```
 
 ---
 
 ## Indexing Strategy
 
-### Primary Indexes
-- All primary keys: automatic B-tree index
-- All foreign keys: explicit index
-- Email fields: unique index
+### Recommended Indexes
 
-### Query Pattern Indexes
-- `idx_members_email_unique` - Member login
-- `idx_classes_start_time` - Schedule queries
-- `idx_bookings_member_id` - Member bookings
-- `idx_payments_status_date` - Payment reporting
+| Table | Index | Type | Purpose |
+|-------|-------|------|---------|
+| All entities with `TenantId` | `IX_{Table}_TenantId` | Non-clustered | Tenant filtering (automatically used by EF filters) |
+| `Members` | `IX_Members_GymId_TenantId` | Composite | Lookup members by gym |
+| `Members` | `IX_Members_Email_TenantId` | Unique | Email uniqueness per tenant |
+| `Sessions` | `IX_Sessions_CoachId_StartTime` | Composite | Coach schedule lookups |
+| `Sessions` | `IX_Sessions_RoomId_StartTime` | Composite | Room availability checks |
+| `Bookings` | `IX_Bookings_MemberId` | Non-clustered | Member booking history |
+| `Bookings` | `IX_Bookings_SessionId` | Non-clustered | Session booking list |
+| `CoachAvailability` | `IX_CoachAvailability_CoachId` | Non-clustered | Coach schedule queries |
+| `WorkoutLogs` | `IX_WorkoutLogs_MemberId` | Non-clustered | Member progress |
 
-### Performance Indexes
-- `idx_members_checkin` - Composite index (location_id, created_at)
-- `idx_classes_trainer_time` - Composite index (trainer_id, start_time)
-- Partial index for active records only
+### Index Naming Convention
+
+```
+IX_{TableName}_{ColumnName}         # Single column
+IX_{TableName}_{Col1}_{Col2}        # Composite
+UQ_{TableName}_{Column}             # Unique constraint
+```
 
 ---
 
 ## Migration Strategy
 
-### Migration Tool
-- EF Core Migrations OR Flyway
-- Migration scripts in `/infra/database/migrations/`
+### Module-Level Migrations
 
-### Migration Process
-1. Create migration script
-2. Review with team
-3. Test in staging environment
-4. Deploy with deployment
+Each module has its own DbContext and manages its own migrations:
+
+```bash
+# Generate migration for Membership
+dotnet ef migrations add AddMemberPhone --project GymPlatform.Modules.Membership
+
+# Generate migration for Training
+dotnet ef migrations add AddProgressPhoto --project GymPlatform.Modules.Training
+
+# Generate migration for Communication
+dotnet ef migrations add AddBookingStatus --project GymPlatform.Modules.Communication
+```
 
 ### Migration Conventions
-- Numbered sequentially
-- Up/down scripts required
-- Idempotent where possible
+
+- All migrations stored in: `GymPlatform.Infrastructure/Persistence/Migrations/`
+- Naming: `YYYYMMDDHHMMSS_DescriptiveName`
+- Migrations must be **additive only** unless explicitly authorized
+- Multi-tenant RLS policies added via migrations
+- Always include `Up()` and `Down()` methods
+
+### Production Migration Process
+
+1. Create and review migration in feature branch
+2. Test locally with `dotnet ef database update`
+3. Run integration tests against migrated database
+4. Merge PR to `develop`
+5. Manual approval gate in CI/CD pipeline
+6. Execute migration on staging, then production
 
 ---
 
 ## Performance Optimization
 
 ### Query Optimization
-- EXPLAIN ANALYZE for complex queries
-- Connection pooling (PgBouncer)
-- Read replicas for reporting
 
-### Partitioning
-- Time-based partitioning for logs
-- Tenant-based partitioning for analytics
-- Manual partition management
+| Technique | When Used | Implementation |
+|-----------|-----------|----------------|
+| AsNoTracking | Read-only queries | `.AsNoTracking()` in repository queries |
+| Split Queries | Large includes | `.AsSplitQuery()` for nested collections |
+| Pagination | List endpoints | `Skip().Take()` with page and page size |
+| Index optimization | Frequent filters | Add composite indexes for common filter combos |
+| Query Filters | Tenant filtering | Automatic via `HasQueryFilter()` |
 
-### Materialized Views
-- Daily summary tables
-- Cached in Redis
-- Refresh via scheduled jobs
+### EF Core Configuration Patterns
+
+```csharp
+// Example configuration pattern
+public class MemberConfiguration : IEntityTypeConfiguration<Member>
+{
+    public void Configure(EntityTypeBuilder<Member> builder)
+    {
+        builder.ToTable("Members", "Membership");
+        builder.HasKey(m => m.Id);
+        
+        // Property configurations
+        builder.Property(m => m.FullName).HasMaxLength(200).IsRequired();
+        builder.Property(m => m.Email).HasMaxLength(320).IsRequired();
+        
+        // Relationships
+        builder.HasOne(m => m.Gym)
+            .WithMany(g => g.Members)
+            .HasForeignKey(m => m.GymId);
+        
+        // Indexes
+        builder.HasIndex(m => new { m.GymId, m.TenantId });
+        builder.HasIndex(m => new { m.Email, m.TenantId }).IsUnique();
+        
+        // Global query filter
+        builder.HasQueryFilter(m => m.TenantId == GetTenantId());
+    }
+}
+```
 
 ---
 
 ## Backup and Recovery
 
-### Backup Schedule
-- Daily full backups at 2 AM UTC
-- Hourly incremental backups
-- Transaction log backups every 5 minutes
+### Backup Schedule (Planned)
+- Daily full backups via SQL Server Agent
+- Hourly transaction log backups
+- 30-day retention period
 
 ### Recovery Objectives
-- RTO: 4 hours
-- RPO: 5 minutes
-
-### Backup Storage
-- Geo-redundant storage
-- 30-day retention
-- Point-in-time recovery enabled
+- **RTO**: 4 hours
+- **RPO**: 5 minutes (transaction log backups)
 
 ---
 
-## Sections Prepared for Future Content
+## Design Patterns Used
 
-### Analytics Schema
-*To be defined*
+| Pattern | Usage |
+|---------|-------|
+| Repository Pattern | Data access abstraction per module |
+| Unit of Work | Transaction boundary (`IUnitOfWork`) |
+| CQRS | Commands for writes, minimal reads |
+| Domain Events | In-process cross-module communication |
+| Specification Pattern | (Planned) Complex query logic |
+| Value Object | Immutable concepts (Email, Phone, Equipment) |
+| Aggregate Root | Entity boundary enforcement |
 
-### Audit Trail Design
-*To be defined*
+---
 
-### Multi-Tenant Data Isolation
-*To be defined*
-
-### Performance Benchmarks
-*To be defined*
+*End of Database Design — 2026-07-03*

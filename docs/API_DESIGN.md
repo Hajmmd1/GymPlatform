@@ -1,264 +1,307 @@
 # API Design
 
 ## Purpose
-Documents REST API design principles, conventions, endpoints, and integration patterns for GymPlatform.
+Documents the REST API design for GymPlatform, covering current implementation patterns and standards based on the .NET 10 Minimal API architecture.
 
 ## Scope
-All external and internal API endpoints, request/response schemas, and integration contracts.
+All external API endpoints, request/response patterns, authentication, error handling, and implementation standards.
 
 ## Owner
 Backend Architecture Lead
 
 ## Status
-Draft - Under Review
+Active — Updated 2026-07-03
 
 ## Last Updated
-2026-06-17
+2026-07-03
 
-> **Note:** This document contains preliminary API design guidelines. Specific implementations and technologies are subject to formal approval.
+> **Note**: This document reflects current implementation. For conceptual API architecture and future strategy, refer to `.ai/context/API_BLUEPRINT.md`.
 
 ---
 
 ## Table of Contents
 1. [API Principles](#api-principles)
-2. [Design Standards](#design-standards)
-3. [Endpoint Conventions](#endpoint-conventions)
+2. [Technology](#technology)
+3. [Endpoint Organization](#endpoint-organization)
 4. [Authentication](#authentication)
-5. [Error Handling](#error-handling)
-6. [Rate Limiting](#rate-limiting)
-7. [Versioning](#versioning)
-8. [Pagination](#pagination)
-9. [Filtering and Sorting](#filtering-and-sorting)
+5. [Request/Response Standards](#requestresponse-standards)
+6. [Error Handling](#error-handling)
+7. [Implementation Pattern](#implementation-pattern)
 
 ---
 
 ## API Principles
 
-### RESTful Design
-- Resources identified by URIs
-- Standard HTTP methods (GET, POST, PUT, DELETE, PATCH)
-- Stateless operations
-- Cacheable responses where appropriate
-
-### API First
-- OpenAPI specification written before implementation
-- Contract testing with Pact or similar
-- Documentation as discovery
-
-### Security First
-- HTTPS everywhere
-- Input validation at entry point
-- No sensitive data in responses
+- **Resource-Oriented**: Endpoints represent domain entities or domain actions
+- **REST with RPC Elements**: Standard CRUD plus domain-specific actions (POST for operations)
+- **Minimal APIs**: No controllers; endpoint mapping in `Program.cs`
+- **Consistent**: Uniform patterns across all endpoints
+- **JSON:API Compliance**: Response envelope with `data`, `meta`, `links`
+- **Idempotent**: Idempotency keys required for all write operations
 
 ---
 
-## Design Standards
+## Technology
 
-### URL Structure
-```
-/api/v1/{resource}              # Collection
-/api/v1/{resource}/{id}         # Item
-/api/v1/{resource}/{id}/{sub}   # Sub-resource
-```
-
-### Resource Naming
-- Plural nouns: `/memberships`, `/classes`, `/trainers`
-- No verbs in URLs
-- Lowercase with hyphens
-
-### HTTP Methods
-- GET - Retrieve resource(s)
-- POST - Create resource
-- PUT - Replace resource
-- PATCH - Partial update
-- DELETE - Delete resource
+| Component | Technology | Version |
+|-----------|-----------|---------|
+| Framework | ASP.NET Core Minimal APIs | 10 |
+| Documentation | Swashbuckle / Swagger | 8.1.0 |
+| Authentication | JWT Bearer | Custom |
+| Error Format | RFC 7807 ProblemDetails | Built-in |
+| Async | Task-based async pattern | C# 12 |
 
 ---
 
-## Endpoint Conventions
+## Endpoint Organization
 
-### Collection Endpoints
-```
-GET    /api/v1/members         # List members
-POST   /api/v1/members         # Create member
-```
+### Current Implemented Endpoints
 
-### Item Endpoints
+**Membership (4 endpoints)**:
 ```
-GET    /api/v1/members/{id}    # Get specific member
-PUT    /api/v1/members/{id}    # Replace member
-PATCH  /api/v1/members/{id}    # Update member
-DELETE /api/v1/members/{id}    # Delete member
+POST /api/gyms                        — Create new gym
+POST /api/members                     — Register new member
+POST /api/coaches/{coachId}/assign    — Assign coach to member
+POST /api/gyms/{gymId}/deactivate     — Deactivate gym
 ```
 
-### Action Endpoints
+**Training (7 endpoints)**:
 ```
-POST   /api/v1/members/{id}/checkin
-POST   /api/v1/classes/{id}/book
-POST   /api/v1/payments/{id}/refund
+POST /api/exercises                   — Create exercise
+POST /api/workout-programs            — Create workout program
+POST /api/workout-logs                — Log workout completion
+POST /api/exercise-videos             — Upload exercise video
+POST /api/body-measurements           — Record body measurement
+POST /api/progress-photos             — Upload progress photo
+PATCH /api/coach-profiles             — Update coach profile
 ```
+
+**Communication Calendar (6 endpoints)**:
+```
+POST /api/rooms                       — Create room
+POST /api/sessions                    — Create session (with overlap validation)
+POST /api/bookings                    — Book session for member
+POST /api/sessions/{sessionId}/cancel — Cancel session
+POST /api/bookings/{bookingId}/cancel — Cancel booking
+POST /api/coaches/{coachId}/availability — Set coach availability
+```
+
+### Full Endpoint Catalog (Planned)
+
+| Module | Endpoint Group | Phase |
+|--------|----------------|-------|
+| Membership | `/api/gyms`, `/api/members`, `/api/coaches` | Phase 0 ✅ |
+| Training | `/api/exercises`, `/api/workout-programs`, `/api/workout-logs`, `/api/exercise-videos`, `/api/body-measurements`, `/api/progress-photos`, `/api/coach-profiles` | Phase 1 ✅ |
+| Communication | `/api/rooms`, `/api/sessions`, `/api/bookings`, `/api/coaches/{id}/availability` | Phase 2 🔄 |
+| Chat & Messaging | `/api/conversations`, `/api/messages` | Phase 2 📋 |
+| Notifications | `/api/notifications` | Phase 2 📋 |
+| Calendar | `/api/events` | Phase 2 📋 |
+| Settings | `/api/settings` | Phase 3 📋 |
+| Admin | `/api/admin/*` | Phase 3 📋 |
+| Media Management | `/api/media` | Phase 3 📋 |
+| Reports & Analytics | `/api/reports`, `/api/dashboards` | Phase 3 📋 |
+| Payments | `/api/payment-methods`, `/api/subscriptions` | Phase 4 📋 |
+| Financial | `/api/financial/*` | Phase 4 📋 |
+| Marketplace | `/api/marketplace/*` | Phase 4 📋 |
+| Reviews & Ratings | `/api/reviews` | Phase 4 📋 |
 
 ---
 
 ## Authentication
 
-### OAuth 2.0 Flow
-- Authorization Code flow for web
-- PKCE flow for mobile
-- Client Credentials for services
+### JWT Token Structure
 
-### Token Format
-- JWT access tokens
-- 15-minute expiration
-- Refresh token rotation
-
-### Token Storage
-- httpOnly cookies (web)
-- Secure storage (mobile)
-- No localStorage for tokens
-
-### Token Validation
-- Validate signature, issuer, audience
-- Check expiration
-- Verify claims
-
----
-
-## Error Handling
-
-### Error Response Format
-```json
-{
-  "type": "https://httpstatuses.com/400",
-  "title": "Validation Error",
-  "status": 400,
-  "detail": "Email format is invalid",
-  "instance": "/api/v1/members",
-  "errors": {
-    "email": ["Required", "Invalid format"]
-  },
-  "traceId": "00-abc123..."
+```
+Header:  { "alg": "HS256", "typ": "JWT" }
+Payload: {
+  "sub": "user-guid",           // User ID
+  "tenant": "gym-guid",         // Tenant ID (gym)
+  "roles": ["GymOwner"],        // User roles
+  "permissions": ["members:read", "members:write"],  // Granular permissions
+  "exp": 1516239022,            // Expiration timestamp
+  "iat": 1516239022,            // Issued at timestamp
+  "jti": "unique-token-id"      // JWT ID for revocation
 }
 ```
 
-### HTTP Status Codes
-- 200 OK - Success
-- 201 Created - Resource created
-- 400 Bad Request - Validation error
-- 401 Unauthorized - Not authenticated
-- 403 Forbidden - Not authorized
-- 404 Not Found - Resource not found
-- 409 Conflict - State conflict
-- 429 Too Many Requests - Rate limited
-- 500 Internal Server Error - Server error
+### Token Acquisition
 
-### Error Types
-- Validation errors (400)
-- Authentication errors (401)
-- Authorization errors (403)
-- Business rule errors (400/409)
-- System errors (500)
+1. Client authenticates via `/auth/login`
+2. Server validates credentials
+3. JWT access token (15 min) + refresh token (7 days) returned
+4. Access token included in `Authorization: Bearer <token>` header
+5. On 401, client uses refresh token via `/auth/refresh`
+6. New access token returned without re-authentication
+
+### Current Authentication (Minimal API)
+
+```csharp
+// GymPlatform.Api/Program.cs
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+        };
+    });
+```
 
 ---
 
-## Rate Limiting
+## Request/Response Standards
 
-### Limits
-- Authenticated: 1000 requests/hour
-- Anonymous: 100 requests/hour
-- Burst: 20 requests/second
+### Request Format
 
-### Headers
-```
-X-RateLimit-Limit: 1000
-X-RateLimit-Remaining: 999
-X-RateLimit-Reset: 2026-06-17T22:00:00Z
-```
-
-### Response (429)
-```json
+```csharp
+// POST /api/members
 {
-  "type": "https://httpstatuses.com/429",
-  "title": "Too Many Requests",
-  "detail": "Rate limit exceeded. Try again in 3600 seconds."
+  "gymId": "guid",
+  "fullName": "علی محمدی",
+  "email": "ali@example.com",
+  "phone": "+989123456789"
 }
 ```
 
----
+### Response Format (Success)
 
-## Versioning
-
-### URL Versioning
-- `/api/v1/` - Current stable version
-- `/api/v2/` - Next version (when needed)
-
-### Compatibility
-- Backward compatible within major version
-- Deprecation headers in responses
-- 6-month notice for breaking changes
-
-### Version Lifecycle
-- v1 - Currently supported
-- v2 - Development
-- v0 - Deprecated, removal planned
-
----
-
-## Pagination
-
-### Request Parameters
-- `page` - Page number (default: 1)
-- `pageSize` - Items per page (default: 20, max: 100)
-- `sort` - Sort field and direction
-
-### Response Headers
-```
-Link: </api/v1/members?page=2>; rel="next", </api/v1/members?page=5>; rel="last"
-X-Total-Count: 100
-X-Page-Count: 5
-```
-
-### Response Body
 ```json
+{
+  "data": {
+    "id": "guid",
+    "fullName": "علی محمدی",
+    "email": "ali@example.com",
+    "status": "Active",
+    "createdAt": "2026-06-29T00:00:00Z"
+  }
+}
+```
+
+### Idempotency Key
+
+All write operations (POST, PATCH, DELETE) require:
+```
+Idempotency-Key: <unique-uuid>
+```
+
+### Pagination (Planned for List Endpoints)
+
+```
+GET /api/members?page=1&pageSize=20
+
+Response:
 {
   "data": [...],
-  "pagination": {
+  "meta": {
     "page": 1,
     "pageSize": 20,
-    "totalItems": 100,
-    "totalPages": 5,
-    "hasPrevious": false,
-    "hasNext": true
+    "totalItems": 150,
+    "totalPages": 8
   }
 }
 ```
 
 ---
 
-## Filtering and Sorting
+## Error Handling
 
-### Filtering
-- `?status=active` - Equality filter
-- `?createdAfter=2026-01-01` - Date range
-- `?name.contains=john` - Contains search
+### Error Response Format (RFC 7807 ProblemDetails)
 
-### Sorting
-- `?sort=name` - Ascending
-- `?sort=-name` - Descending
-- `?sort=name,-created` - Multiple fields
+```json
+{
+  "type": "https://httpstatuses.com/400",
+  "title": "Validation Error",
+  "status": 400,
+  "detail": "Email format is invalid",
+  "instance": "/api/members",
+  "errors": {
+    "email": ["Required", "Invalid format"]
+  }
+}
+```
+
+### HTTP Status Codes
+
+| Status | Meaning | Usage |
+|--------|---------|-------|
+| 200 OK | Success | GET, successful PATCH |
+| 201 Created | Resource created | POST |
+| 400 Bad Request | Validation error | Invalid input |
+| 401 Unauthorized | Not authenticated | Missing/invalid token |
+| 403 Forbidden | Not authorized | Valid token, insufficient permissions |
+| 404 Not Found | Resource not found | Entity doesn't exist or inaccessible |
+| 409 Conflict | State conflict | Business rule violation |
+| 422 Unprocessable Entity | Business rule failure | Domain validation failure |
+| 429 Too Many Requests | Rate limited | Rate limit exceeded |
+| 500 Internal Server Error | Server error | Unhandled exception |
+
+### Error Handling Middleware
+
+```csharp
+// GymPlatform.Api/GlobalExceptionMiddleware.cs
+public async Task InvokeAsync(HttpContext context)
+{
+    try
+    {
+        await _next(context);
+    }
+    catch (Exception ex)
+    {
+        await HandleExceptionAsync(context, ex);
+    }
+}
+```
 
 ---
 
-## Sections Prepared for Future Content
+## Implementation Pattern
 
-### API Endpoint Catalog
-*To be populated with all endpoints*
+### Standard Endpoint Implementation
 
-### Webhook Endpoints
-*To be defined*
+```csharp
+// Program.cs pattern
+app.MapPost("/api/rooms", async (
+    CreateRoomCommand command,
+    ICommandValidator<CreateRoomCommand> validator,
+    ICommandHandler<CreateRoomCommand, RoomResponse> handler,
+    CancellationToken ct) =>
+{
+    // Validate
+    var validation = validator.Validate(command);
+    if (validation.IsFailure)
+        return Results.Problem(statusCode: 400, detail: validation.Error);
 
-### GraphQL Schema (if applicable)
-*To be defined*
+    // Handle
+    var result = await handler.HandleAsync(command, ct);
+    if (result.IsFailure)
+        return Results.Problem(statusCode: 400, detail: result.Error);
 
-### GraphQL Federation
-*To be defined*
+    // Return
+    return Results.Ok(result.Value);
+})
+.RequireAuthorization()
+.WithName("CreateRoom")
+.WithTags("Rooms");
+```
+
+### Registration Pattern
+
+```csharp
+// Registration in Program.cs
+builder.Services.AddScoped<ICommandHandler<CreateRoomCommand, RoomResponse>,
+    CreateRoomCommandHandler>();
+builder.Services.AddScoped<ICommandValidator<CreateRoomCommand>,
+    CreateRoomCommandValidator>();
+```
+
+---
+
+*End of API Design — 2026-07-03*
